@@ -1,8 +1,7 @@
 """
 Production evaluator for Z(s, alpha, beta) using the exact p = sqrt(t/s)
-Gauss-Laguerre substitution from IntegralAnalytic.py, instead of
-scipy.integrate.quad applied directly to the oscillatory, weakly-damped
-integral on [0, inf).
+Gauss-Laguerre substitution, instead of scipy.integrate.quad applied directly
+to the oscillatory, weakly-damped integral on [0, inf).
 
 Why: for the alpha values used throughout this project (alpha ~ 1e-9 or
 smaller), scipy.integrate.quad on the raw integrand fails to converge once s
@@ -11,29 +10,24 @@ damping exp(-s p^2) is too weak relative to the oscillatory J_1 tail for
 quad's adaptive subdivision to resolve. Folding exp(-s p^2) into the
 Gauss-Laguerre weight via p = sqrt(t/s) removes that specific failure mode and
 needs no expansion or limit -- it is the exact same integral, exactly
-substituted.
+substituted. Node/weight generation uses scipy.special.roots_laguerre.
 
-This module reuses that substitution (and scipy.special.roots_laguerre for
-the node/weight generation, exactly as IntegralAnalytic.py does) but does NOT
-reuse IntegralAnalytic.py's symbolic build_I_expr verbatim: that expression
-has poly_piece = (t/s)*(1+a2_t_s)/beta, i.e. an explicit division by beta, the
-same beta -> 0 divergence already identified and fixed (via the p^3*J_1(A2)/A2
-rewrite) in IntegralNumeric.py, PeakInvestigation.py and
-plot_surface_stable_integrand.py. Carrying that fix through the substitution:
+This module uses the beta=0-safe rewrite of the integrand (the same one used
+in IntegralNumeric.py, PeakInvestigation.py and
+plot_surface_stable_integrand.py to remove the spurious p^2(1+q)/beta
+divergence as beta -> 0):
 
     p^3 * J_1(A2)/A2 * exp(A1),  A2 = beta*p/(1+q), A1 = -s p^2 (1+2q/3), q = alpha^2 p^2
 
-becomes, under p = sqrt(t/s) (so exp(A1) = exp(-t) * exp(-2 alpha^2 t^2/(3s))
-and p^3 dp = [t/(2 s^2)] exp(-t) dt after absorbing exp(-t) into the Laguerre
-weight):
+Under p = sqrt(t/s) (so exp(A1) = exp(-t) * exp(-2 alpha^2 t^2/(3s)) and
+p^3 dp = [t/(2 s^2)] exp(-t) dt, with exp(-t) absorbed into the Laguerre
+weight), this becomes:
 
     h(t) = [t / (2 s^2)] * exp(-2 alpha^2 t^2/(3s)) * J_1(A2)/A2,
     A2 = beta*sqrt(t/s) / (1 + alpha^2 t/s)
 
-with J_1(A2)/A2 -> 1/2 as A2 -> 0 (beta=0 or t=0), well-defined throughout.
-This h(t) is verified against IntegralAnalytic.py's own h(t) away from beta=0
-(they agree to machine precision there) and additionally handles beta=0,
-which IntegralAnalytic.py's symbolic form cannot.
+with J_1(A2)/A2 -> 1/2 as A2 -> 0 (beta=0 or t=0), well-defined throughout,
+including at beta=0.
 
 CALIBRATED RELIABILITY (alpha ~ 1e-9, the regime this project actually uses):
 for s >= S_MIN_RELIABLE, this sum matches the alpha->0 closed form (Weber's
@@ -77,7 +71,7 @@ class UnreliableRegionError(ValueError):
 @lru_cache(maxsize=None)
 def _nodes_weights(N: int):
     """Laguerre nodes/weights for N, with non-finite/non-positive entries dropped
-    (mirrors IntegralAnalytic.build_I_expr's NaN guard for large N)."""
+    (roots_laguerre can return spurious entries at large N)."""
     nodes, weights = roots_laguerre(N)
     keep = np.isfinite(nodes) & np.isfinite(weights) & (weights > 0)
     return nodes[keep], weights[keep]
@@ -85,13 +79,12 @@ def _nodes_weights(N: int):
 
 def recommended_N(s: float, alpha: float, beta: float) -> int:
     """
-    Node-count heuristic per IntegralAnalytic.py's own guidance: large
-    beta/alpha pushes the Bessel argument into oscillatory territory and
-    needs more nodes. At the tiny alpha used throughout this project that
-    ratio is enormous but never actually binding (the t-range Laguerre nodes
-    cover never reaches alpha^2*t/s ~ O(1)), so DEFAULT_N=40 is calibrated to
-    already suffice; this heuristic only escalates N for alpha that is *not*
-    tiny, where IntegralAnalytic.py's own bound is the relevant one.
+    Node-count heuristic: large beta/alpha pushes the Bessel argument into
+    oscillatory territory and needs more nodes. At the tiny alpha used
+    throughout this project that ratio is enormous but never actually binding
+    (the t-range Laguerre nodes cover never reaches alpha^2*t/s ~ O(1)), so
+    DEFAULT_N=40 is calibrated to already suffice; this heuristic only
+    escalates N for alpha that is *not* tiny.
     """
     if alpha < 1e-6:
         return DEFAULT_N

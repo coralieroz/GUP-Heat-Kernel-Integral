@@ -121,7 +121,7 @@ if __name__ == '__main__':
     ax1.set_title(fr'$Z(s,\beta)$ -- raw, full range ($\alpha={ALPHA}$)' +
                   f'\n{n_flagged} unconverged points included (numerical noise, not signal)')
     fig1.tight_layout()
-    fig1.savefig('StableIntegrandPlots/full_range_raw.png', dpi=150)
+    fig1.savefig('TestingApparentIntegralDivergences/full_range_raw.png', dpi=150)
 
     # --- Figure 2: convergence-masked, percentile-clipped surface -- reveals
     #     the smooth bulk Gaussian ridge, validated against the closed form. ---
@@ -158,6 +158,6 @@ if __name__ == '__main__':
                   fr'[p{DISPLAY_PCT_LOW},p{DISPLAY_PCT_HIGH}]' +
                   '\n(red wireframe: exact $\\alpha\\to0$ closed form)')
     fig2.tight_layout()
-    fig2.savefig('StableIntegrandPlots/clipped_masked.png', dpi=150)
+    fig2.savefig('TestingApparentIntegralDivergences/clipped_masked.png', dpi=150)
 
     plt.show()

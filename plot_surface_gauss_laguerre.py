@@ -73,7 +73,7 @@ if __name__ == "__main__":
     ax1.set_title(fr'$Z(s,\beta)$ -- Gauss-Laguerre, exact substitution ($\alpha={ALPHA}$)' +
                   f'\n s < {S_MIN_RELIABLE:g} masked (open numerical limitation, not noise)')
     fig1.tight_layout()
-    fig1.savefig('StableIntegrandPlots/gauss_laguerre_full.png', dpi=150)
+    fig1.savefig('TestingApparentIntegralDivergences/gauss_laguerre_full.png', dpi=150)
 
     # --- Figure 2: clipped to [p1,p99] of the reliable values, with closed-form overlay ---
     finite = np.isfinite(Z)
@@ -93,6 +93,6 @@ if __name__ == "__main__":
     ax2.set_title(r'$Z(s,\beta)$ -- Gauss-Laguerre, clipped to [p1,p99]' +
                   '\n(red wireframe: exact $\\alpha\\to0$ closed form)')
     fig2.tight_layout()
-    fig2.savefig('StableIntegrandPlots/gauss_laguerre_clipped.png', dpi=150)
+    fig2.savefig('TestingApparentIntegralDivergences/gauss_laguerre_clipped.png', dpi=150)
 
     plt.show()
