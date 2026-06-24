@@ -4,6 +4,42 @@ Numerical evaluation and visualisation of a parametric integral arising from
 a Generalized Uncertainty Principle (GUP) heat-kernel calculation in the
 accompanying capstone report.
 
+## Overview
+
+This repository evaluates and visualises one surface, `Z(s, beta)`, two
+independent ways, then cross-checks both against an exact benchmark:
+
+- **Direct adaptive quadrature** — `scipy.integrate.quad` applied to the
+  integral as written (`IntegralNumeric.py`, `PeakInvestigation.py`,
+  `plot_surface_stable_integrand.py`).
+- **Exact Gauss-Laguerre substitution** — `p = sqrt(t/s)` folded into the
+  quadrature weight, no expansion or limit (`gauss_laguerre_integral.py`,
+  `plot_surface_gauss_laguerre.py`).
+- **Verification** — `verify_integration.py` checks both against the exact
+  closed form available as `alpha -> 0` (Weber's second exponential integral).
+
+**Headline finding:** `quad` is correct away from `s ~ 0` (agrees with the
+closed form to ~1e-9) but genuinely fails to converge as `s -> 0` — not just
+imprecise, but 100% non-converged at the smallest grid values tested. The
+Gauss-Laguerre substitution removes that specific failure mode down to a
+calibrated reliability floor (`S_MIN_RELIABLE = 0.02`).
+
+`## The journey` below tells the full story of how this was diagnosed and
+fixed; `## Getting started` shows what to run first and what to expect;
+`wiki/` (start at `wiki/index.md`) has page-level detail on each script and
+finding. The table below maps every file to its role.
+
+| Path | Role |
+|---|---|
+| `IntegralNumeric.py` | First direct-quadrature evaluation; surfaced the small-`s` peak. |
+| `PeakInvestigation.py` | Diagnoses the peak as a boundary/convergence artifact. |
+| `verify_integration.py` | Validates `quad` against the exact `alpha -> 0` closed form. |
+| `plot_surface_stable_integrand.py` | Hardened `quad` + beta=0 fix + twin full/clipped plots. |
+| `gauss_laguerre_integral.py` | Exact-substitution Gauss-Laguerre production integrator. |
+| `plot_surface_gauss_laguerre.py` | Cross-validation and surface plots for the integrator above. |
+| `TestingApparentIntegralDivergences/` | Output plots from the scripts above. |
+| `wiki/` | Page-per-topic notes: definitions, findings, and how everything connects. |
+
 ## The integral
 
 The central object is a one-sided integral over `p in [0, inf)`:
@@ -129,30 +165,83 @@ clean and noise-free, with no non-convergence masking required:
 
 ![Gauss-Laguerre surface](TestingApparentIntegralDivergences/gauss_laguerre_clipped.png)
 
-## Repository layout
-
-| Path | Role |
-|---|---|
-| `IntegralNumeric.py` | First direct-quadrature evaluation; surfaced the small-`s` peak. |
-| `PeakInvestigation.py` | Diagnoses the peak as a boundary/convergence artifact. |
-| `verify_integration.py` | Validates `quad` against the exact `alpha -> 0` closed form. |
-| `plot_surface_stable_integrand.py` | Hardened `quad` + beta=0 fix + twin full/clipped plots. |
-| `gauss_laguerre_integral.py` | Exact-substitution Gauss-Laguerre production integrator. |
-| `plot_surface_gauss_laguerre.py` | Cross-validation and surface plots for the integrator above. |
-| `TestingApparentIntegralDivergences/` | Output plots from the scripts above. |
-| `wiki/` | Page-per-topic notes: definitions, findings, and how everything connects. |
-
-## Reproduce
+## Getting started — what to run first
 
 ```
 pip install -r requirements.txt
-python verify_integration.py
-python plot_surface_stable_integrand.py
-python plot_surface_gauss_laguerre.py
 ```
 
-Each plotting script prints its diagnostics to the console and saves PNGs
-into `TestingApparentIntegralDivergences/`.
+Run the three scripts below **in this order** — each builds confidence before
+the next. Both plotting scripts save their PNGs into
+`TestingApparentIntegralDivergences/` *before* calling a blocking
+`plt.show()`, so an interactive window will pop up and the script will pause
+until it's closed; the PNGs are written regardless, so a headless run (e.g.
+`MPLBACKEND=Agg python ...` on Linux/macOS, or the equivalent
+`$env:MPLBACKEND='Agg'` in PowerShell) produces the same files without
+blocking.
+
+### Step 1 — `python verify_integration.py`
+
+Read-only, no plots, fastest to run. This proves the numerics are sound
+*before* looking at any visualisation. Representative output (abridged):
+
+```
+  Worst-case relative error across this grid: 1.242e-09
+  -> if small (<<1), quad is CORRECTLY evaluating the integral in
+     the well-damped (s not tiny) regime ...
+
+  Representative bulk point  Z(s=1, beta=0)        = 0.25
+  Closed-form prediction at (s=1, beta=0)          = 0.25
+  Grid Z range                                     = [-1.26818e+06, 1.52969e+06]
+  -> the bulk value (~0.25 near beta=0) is dwarfed by the corner spike,
+     which is why an autoscaled z-axis makes the bulk LOOK like zero.
+
+  Bad-point count by s-row (first 10 rows, smallest s first):
+    s=1e-06: 60 / 60 flagged
+    s=0.0689665: 0 / 60 flagged
+    ...
+```
+
+Look for: worst-case relative error ~1e-9 (i.e. `quad` agrees with the exact
+closed form to 9 decimal places away from `s ~ 0`), `Z(s=1, beta=0) = 0.25`
+exactly, and **100% of `quad` evaluations flagged non-converged at the
+smallest `s` row** while every other row is clean. **Takeaway:** `quad` is
+trustworthy in the bulk; the small-`s` failure is a real, total
+non-convergence, not mere imprecision.
+
+### Step 2 — `python plot_surface_gauss_laguerre.py`
+
+The clean answer. Prints a cross-validation table comparing the
+Gauss-Laguerre integrator against hardened `quad` and the closed form:
+
+```
+       s   beta        Laguerre  quad (hardened)    closed form   Lag vs CF quad vs CF
+  0.4160   0.00    1.444619e+00     1.444619e+00   1.444619e+00    4.61e-16   0.00e+00
+1 / 60 s-rows below S_MIN_RELIABLE=0.02 are masked (known open numerical limitation)
+```
+
+Look for: agreement to ~1e-16 (machine precision) almost everywhere. Opens
+two windows / writes `gauss_laguerre_full.png` and
+`gauss_laguerre_clipped.png` — a clean, noise-free Gaussian ridge, with no
+masking needed below the documented reliability floor.
+
+### Step 3 — `python plot_surface_stable_integrand.py`
+
+The diagnostic story — why the masking and the second integrator were
+needed. Representative output:
+
+```
+Z min = -380015,  Z max = 640817
+quad flagged 120 / 7200 points (1.67%) as non-converged
+  non-converged rows span s in [1e-06, 1e-06]
+Masked 180 / 7200 points (2.50%) for the clipped view
+Clipped plot zlim/color limits (p1/p99): [0.00328447, 11.6975]
+```
+
+Opens two windows / writes `full_range_raw.png` (spiky near `s -> 0`, the
+raw non-convergence noise) and `clipped_masked.png` (the same grid with
+non-converged and outlier points NaN-masked, revealing the smooth ridge
+underneath).
 
 ## Further detail
 
