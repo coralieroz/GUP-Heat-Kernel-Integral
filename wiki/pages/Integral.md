@@ -1,6 +1,6 @@
 # Integral I(s, alpha, beta)
 
-**Source:** concept, implemented in `IntegralAnalytic.py`, `IntegralNumeric.py`, `plot_surface_stable_integrand.py`
+**Source:** concept, implemented in `IntegralNumeric.py`, `plot_surface_stable_integrand.py`, `gauss_laguerre_integral.py`
 **Status:** active
 
 The project's central object is a one-sided parametric integral over `p in [0, inf)`:
@@ -18,14 +18,25 @@ damping/regularization parameter, `alpha` a GUP deformation parameter, and
 
 ## Two implementations
 
-- **Numeric** (`IntegralNumeric.py`, `PeakInvestigation.py`,
+- **Direct quadrature** (`IntegralNumeric.py`, `PeakInvestigation.py`,
   `plot_surface_stable_integrand.py`): evaluate `I` directly via
   `scipy.integrate.quad` over the original `p` domain, gridded over `(s, beta)`
-  for fixed `alpha`.
-- **Analytic/symbolic** (`IntegralAnalytic.py`): substitute `p = sqrt(t/s)` to
-  turn the integral into a Gauss-Laguerre quadrature sum, yielding a genuine
-  SymPy expression in `(s, alpha, beta)` that supports `diff`/`subs`/`lambdify`
-  — useful for getting closed-form-ish derivatives (e.g. `dI/ds`) for the paper.
+  for fixed `alpha`. Correct away from `s ~ 0` (see [Verification](Verification.md))
+  but genuinely fails to converge as `s -> 0` (see [Peak Investigation](PeakInvestigation.md)).
+- **Gauss-Laguerre substitution** (`gauss_laguerre_integral.py`): substitute
+  `p = sqrt(t/s)` to fold `exp(-s p^2)` into the Laguerre weight, turning the
+  integral into a fast-converging quadrature sum that removes the small-`s`
+  convergence failure (down to a calibrated floor). See
+  [Gauss-Laguerre](GaussLaguerre.md).
+
+## Validation benchmark
+
+For `alpha -> 0`, Weber's second exponential integral gives an exact closed
+form `Z(s, beta) -> (1/(4 s^2)) exp(-beta^2/4s)`, matching Expression 2.14 of
+the capstone report (d=4 leading term) up to the constant `4 pi^2`. Used only
+to validate the two numeric implementations above — never as a production
+integrator, since it drops the alpha-dependent GUP terms. See
+[Verification](Verification.md).
 
 ## Known numerical hazard
 
@@ -38,4 +49,4 @@ tail. See [Peak Investigation](PeakInvestigation.md).
 
 ## Related pages
 
-[IntegralAnalytic.py](IntegralAnalytic.md), [IntegralNumeric.py](IntegralNumeric.md), [Stable Integrand](StableIntegrand.md), [Peak Investigation](PeakInvestigation.md)
+[IntegralNumeric.py](IntegralNumeric.md), [Stable Integrand](StableIntegrand.md), [Gauss-Laguerre](GaussLaguerre.md), [Verification](Verification.md), [Peak Investigation](PeakInvestigation.md)

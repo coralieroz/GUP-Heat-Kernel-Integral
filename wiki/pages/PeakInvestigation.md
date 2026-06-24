@@ -1,7 +1,7 @@
 # Peak Investigation
 
 **Source:** PeakInvestigation.py, PeakInvestigation.png
-**Status:** active — direct motivation for the `boundary-cutoff/removal` branch
+**Status:** active — the finding that motivated the [Stable Integrand](StableIntegrand.md) and [Gauss-Laguerre](GaussLaguerre.md) work
 
 Diagnoses a sharp positive peak seen in [IntegralNumeric.py](IntegralNumeric.md)'s
 surface plot, sitting at the smallest `s` value of the grid (`s_min = 1e-6`).
@@ -23,16 +23,22 @@ highly oscillatory and only conditionally convergent — `quad()` with a finite
 `peak_info()` finds the largest-magnitude `(s, beta, Z)` point and reports
 whether it sits on the `s`-boundary (`idx[0]==0`).
 
-## Conclusion (implied by the script's framing)
+## Conclusion
 
 The peak is a boundary-cutoff artifact of evaluating the grid down to
 `s_min = 1e-6` with an under-resolved, conditionally-convergent quadrature —
-not a genuine feature of `I(s, alpha, beta)`. This is why the active branch
-(`boundary-cutoff/removal`) removes/avoids that boundary regime rather than
-treating the peak as physical. See [Stable Integrand](StableIntegrand.md) for
-the follow-up that also fixes the separate `beta -> 0` divergence in the
-integrand itself.
+not a genuine feature of `I(s, alpha, beta)`. This script also had the same
+`beta -> 0` division bug as `IntegralNumeric.py`, fixed in place with the
+`p^3 * J_1(A2)/A2` rewrite from [Stable Integrand](StableIntegrand.md)
+(its own `meshgrid` usage was already consistent, via `Z.T`, so needed no
+transpose fix).
+
+[Verification](Verification.md) confirms this conclusion directly: re-running
+`quad` with `full_output=1` shows 100% of evaluations flagged non-converged at
+`s=1e-6`, and the [Gauss-Laguerre](GaussLaguerre.md) substitution — which
+removes this specific failure mode — produces a clean, noise-free surface over
+the same domain (down to its own calibrated reliability floor).
 
 ## Related pages
 
-[Integral](Integral.md), [IntegralNumeric.py](IntegralNumeric.md), [Stable Integrand](StableIntegrand.md)
+[Integral](Integral.md), [IntegralNumeric.py](IntegralNumeric.md), [Stable Integrand](StableIntegrand.md), [Verification](Verification.md), [Gauss-Laguerre](GaussLaguerre.md)
