@@ -154,7 +154,7 @@ if __name__ == '__main__':
     ax2.set_xlabel('s')
     ax2.set_ylabel(r'$\beta$')
     ax2.set_zlabel('Z')
-    ax2.set_title(r'$Z(s,\beta)$ -- convergence-masked, clipped to '
+    ax2.set_title(fr'$Z(s,\beta)$ for $\alpha = ${ALPHA} -- convergence-masked, clipped to '
                   fr'[p{DISPLAY_PCT_LOW},p{DISPLAY_PCT_HIGH}]' +
                   '\n(red wireframe: exact $\\alpha\\to0$ closed form)')
     fig2.tight_layout()
