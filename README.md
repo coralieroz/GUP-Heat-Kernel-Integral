@@ -40,7 +40,7 @@ finding. The table below maps every file to its role.
 | `TestingApparentIntegralDivergences/` | Output plots from the scripts above. |
 | `wiki/` | Page-per-topic notes: definitions, findings, and how everything connects. |
 
-## The integral: $\int_0^\infty\frac{p^2(1+\alpha^2p^2)}{\beta}\:\text{exp}\bigl\{ -sp^2(1+\frac23\alpha^2p^2) \bigr\}\:\mathcal{J}_1\bigl( \frac{\beta p}{1+\alpha^2p^2} \bigr)\:dp$
+## The integral: $\int_0^\infty\frac{p^2(1+\alpha^2p^2)}{\beta}\:\text{exp}\bigl\lbrace -sp^2(1+\frac23\alpha^2p^2) \bigr\rbrace\:\mathcal{J}_1\bigl( \frac{\beta p}{1+\alpha^2p^2} \bigr)\:dp$
 
 The central object is a one-sided integral over `p in [0, inf)`:
 
